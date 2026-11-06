@@ -1,0 +1,17 @@
+{
+    "name": "aether-canvas",
+    "version": "1.0.0",
+    "description": "Whiteboard colaborativo em tempo real com rastreamento de Merkle Tree",
+    "main" : "src/server.js",
+    "scripts": {
+        "dev": "nodemon src/server.js"
+    },
+    "dependencies": {
+        "express": "^4.19.2",
+        "socket.io": "^4.7.5"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.0"
+    }
+
+}
