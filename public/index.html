@@ -43,11 +43,11 @@
     <header class="flex justify-between items-center pb-3 border-b border-gray-800 shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-3 h-3 bg-blue-500 rounded-full animate-ping"></div>
-            <h1 class="text-xl font-black tracking-widest text-blue-400 neon-text">AETHER<span class="text-white">CANVAS</span> <span class="text-[10px] text-gray-500">v1.0-P2P</span></h1>
+            <h1 class="text-xl font-black tracking-widest text-blue-400 neon-text">AETHER<span class="text-white">CANVAS</span> <span class="text-[10px] text-gray-500">v1.1-REPLAY</span></h1>
         </div>
         
-        <!-- FERRAMENTAS -->
-        <div class="flex items-center space-x-4 text-xs">
+        <!-- FERRAMENTAS & TIME TRAVEL -->
+        <div class="flex items-center space-x-3 text-xs">
             <div class="flex items-center space-x-2 bg-[#0d1117] px-3 py-1.5 rounded border border-gray-800">
                 <span class="text-gray-400">Cor:</span>
                 <input type="color" id="colorPicker" value="#58a6ff" class="w-6 h-6 bg-transparent border-0 cursor-pointer">
@@ -59,6 +59,16 @@
             <button id="btnClear" class="bg-red-900/40 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded border border-red-800 transition font-bold">
                 Limpar Tela
             </button>
+
+            <!-- CONTROLE DE TIME TRAVEL -->
+            <div class="flex items-center space-x-2 bg-[#0d1117] px-3 py-1.5 rounded border border-gray-800">
+                <span class="text-yellow-400 font-bold">⏱️ Time Travel:</span>
+                <button id="btnToggleTimeTravel" class="bg-yellow-600/30 hover:bg-yellow-600 text-yellow-300 px-2 py-1 rounded border border-yellow-700 transition font-bold">
+                    Ativar Replay
+                </button>
+                <input type="range" id="timeSlider" min="0" value="0" class="w-28 accent-yellow-500 hidden" disabled>
+                <span id="sliderLabel" class="text-gray-400 font-mono hidden">Bloco: 0/0</span>
+            </div>
         </div>
 
         <div class="bg-gray-900 px-3 py-1.5 rounded border border-gray-800 text-xs">
@@ -87,7 +97,7 @@
     <!-- IMPORTAÇÃO DA ENGINE DE CANVAS -->
     <script src="/canvasEngine.js"></script>
 
-    <!-- SCRIPT DE CONEXÃO SOCKET.IO -->
+    <!-- SCRIPT DE CONEXÃO SOCKET.IO & TIME TRAVEL -->
     <script>
         const socket = io();
         const canvasElement = document.getElementById('whiteboard');
@@ -95,29 +105,105 @@
         const blockCount = document.getElementById('block-count');
         const btnClear = document.getElementById('btnClear');
 
-        // Inicializa a engine de desenho passando o callback de envio via Socket
+        const btnToggleTimeTravel = document.getElementById('btnToggleTimeTravel');
+        const timeSlider = document.getElementById('timeSlider');
+        const sliderLabel = document.getElementById('sliderLabel');
+
+        let isTimeTravelMode = false;
+        let cachedBlocks = [];
+
+        // Inicializa a engine de desenho
         const whiteboard = new CanvasEngine(canvasElement, (actionData) => {
-            socket.emit('canvas_action', actionData);
+            if (!isTimeTravelMode) {
+                socket.emit('canvas_action', actionData);
+            }
         });
 
         // Limpar tela
         btnClear.addEventListener('click', () => {
-            whiteboard.clear();
-            socket.emit('canvas_action', { type: 'CLEAR_CANVAS' });
+            if (!isTimeTravelMode) {
+                whiteboard.clear();
+                socket.emit('canvas_action', { type: 'CLEAR_CANVAS' });
+            }
         });
+
+        // --- LÓGICA DE TIME TRAVEL (REPLAY) ---
+        btnToggleTimeTravel.addEventListener('click', () => {
+            isTimeTravelMode = !isTimeTravelMode;
+
+            if (isTimeTravelMode) {
+                btnToggleTimeTravel.textContent = "Sair do Replay";
+                btnToggleTimeTravel.className = "bg-red-600/30 hover:bg-red-600 text-red-300 px-2 py-1 rounded border border-red-700 transition font-bold";
+                timeSlider.classList.remove('hidden');
+                sliderLabel.classList.remove('hidden');
+                timeSlider.removeAttribute('disabled');
+
+                // Pede o estado completo ao servidor
+                socket.emit('request_ledger');
+            } else {
+                exitTimeTravelMode();
+            }
+        });
+
+        function exitTimeTravelMode() {
+            isTimeTravelMode = false;
+            btnToggleTimeTravel.textContent = "Ativar Replay";
+            btnToggleTimeTravel.className = "bg-yellow-600/30 hover:bg-yellow-600 text-yellow-300 px-2 py-1 rounded border border-yellow-700 transition font-bold";
+            timeSlider.classList.add('hidden');
+            sliderLabel.classList.add('hidden');
+            timeSlider.setAttribute('disabled', 'true');
+
+            // Restaura para o último bloco real
+            rebuildCanvasUpTo(cachedBlocks.length);
+        }
+
+        socket.on('ledger_state', (blocks) => {
+            cachedBlocks = blocks;
+            timeSlider.max = blocks.length;
+            timeSlider.value = blocks.length;
+            sliderLabel.textContent = `Bloco: ${blocks.length}/${blocks.length}`;
+            rebuildCanvasUpTo(blocks.length);
+        });
+
+        timeSlider.addEventListener('input', (e) => {
+            const targetBlockIndex = parseInt(e.target.value);
+            sliderLabel.textContent = `Bloco: ${targetBlockIndex}/${cachedBlocks.length}`;
+            rebuildCanvasUpTo(targetBlockIndex);
+        });
+
+        function rebuildCanvasUpTo(blockLimit) {
+            whiteboard.clear();
+            for (let i = 0; i < blockLimit && i < cachedBlocks.length; i++) {
+                const block = cachedBlocks[i];
+                if (block.data && block.data.type === 'DRAW_LINE') {
+                    whiteboard.drawLine(block.data);
+                } else if (block.data && block.data.type === 'CLEAR_CANVAS') {
+                    whiteboard.clear();
+                }
+            }
+        }
 
         // Sincronização inicial
         socket.on('init_state', (data) => {
+            cachedBlocks = data.merkleTree;
             renderMerkleTree(data.merkleTree);
         });
 
-        // Sincronização em tempo real de ações e blocos criptográficos
+        // Sincronização em tempo real
         socket.on('sync_action', (packet) => {
-            if (packet.action.type === 'DRAW_LINE') {
-                whiteboard.drawLine(packet.action);
-            } else if (packet.action.type === 'CLEAR_CANVAS') {
-                whiteboard.clear();
+            cachedBlocks.push(packet.block);
+
+            if (!isTimeTravelMode) {
+                if (packet.action.type === 'DRAW_LINE') {
+                    whiteboard.drawLine(packet.action);
+                } else if (packet.action.type === 'CLEAR_CANVAS') {
+                    whiteboard.clear();
+                }
+            } else {
+                timeSlider.max = cachedBlocks.length;
+                sliderLabel.textContent = `Bloco: ${timeSlider.value}/${cachedBlocks.length}`;
             }
+
             appendBlockToStream(packet.block);
         });
 

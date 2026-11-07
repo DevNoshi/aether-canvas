@@ -10,7 +10,7 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 const merkleEngine = new MerkleTreeEngine();
 
-// Servir arquivos estáticos do front-end
+// Servir arquivos estáticos do front-end (certifique-se de que o canvasEngine.js está na pasta public)
 app.use(express.static(path.join(__dirname, '../public')));
 
 io.on('connection', (socket) => {
@@ -19,6 +19,11 @@ io.on('connection', (socket) => {
   // Envia o histórico atual do canvas e da Merkle Tree para quem acabou de entrar
   socket.emit('init_state', {
     merkleTree: merkleEngine.getTreeState()
+  });
+
+  // Evento para retornar o ledger completo sob demanda (usado no Replay)
+  socket.on('request_ledger', () => {
+    socket.emit('ledger_state', merkleEngine.getTreeState());
   });
 
   // Quando um usuário desenha ou adiciona um elemento
