@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,55 +16,80 @@
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
         }
+
         .neon-border {
             border: 1px solid #1f6beb;
             box-shadow: 0 0 15px rgba(31, 107, 235, 0.15);
         }
+
         .neon-text {
             text-shadow: 0 0 10px rgba(88, 166, 255, 0.6);
         }
+
         ::-webkit-scrollbar {
             width: 5px;
         }
+
         ::-webkit-scrollbar-track {
             background: #0d1117;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #30363d;
             border-radius: 3px;
         }
+
         canvas {
             cursor: crosshair;
         }
     </style>
 </head>
+
 <body class="h-screen w-screen flex flex-col justify-between p-3">
 
     <!-- CABEÇALHO -->
     <header class="flex justify-between items-center pb-3 border-b border-gray-800 shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-3 h-3 bg-blue-500 rounded-full animate-ping"></div>
-            <h1 class="text-xl font-black tracking-widest text-blue-400 neon-text">AETHER<span class="text-white">CANVAS</span> <span class="text-[10px] text-gray-500">v1.1-REPLAY</span></h1>
+            <h1 class="text-xl font-black tracking-widest text-blue-400 neon-text">AETHER<span
+                    class="text-white">CANVAS</span> <span class="text-[10px] text-gray-500">v1.1-REPLAY</span></h1>
         </div>
-        
+
         <!-- FERRAMENTAS & TIME TRAVEL -->
         <div class="flex items-center space-x-3 text-xs">
             <div class="flex items-center space-x-2 bg-[#0d1117] px-3 py-1.5 rounded border border-gray-800">
                 <span class="text-gray-400">Cor:</span>
-                <input type="color" id="colorPicker" value="#58a6ff" class="w-6 h-6 bg-transparent border-0 cursor-pointer">
+                <input type="color" id="colorPicker" value="#58a6ff"
+                    class="w-6 h-6 bg-transparent border-0 cursor-pointer">
             </div>
             <div class="flex items-center space-x-2 bg-[#0d1117] px-3 py-1.5 rounded border border-gray-800">
                 <span class="text-gray-400">Pincel:</span>
                 <input type="range" id="brushSize" min="1" max="20" value="3" class="w-20 accent-blue-500">
             </div>
-            <button id="btnClear" class="bg-red-900/40 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded border border-red-800 transition font-bold">
+            <button id="btnClear"
+                class="bg-red-900/40 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded border border-red-800 transition font-bold">
                 Limpar Tela
             </button>
+
+            <!-- ADICIONE ESTES BOTÕES NA SUA BARRA DE FERRAMENTAS -->
+            <div class="flex items-center space-x-2 bg-[#0d1117] px-3 py-1.5 rounded border border-gray-800 text-xs">
+                <span class="text-purple-400 font-bold">🛡️ Auditoria:</span>
+                <button id="btnAudit"
+                    class="bg-purple-600/30 hover:bg-purple-600 text-purple-300 px-2 py-1 rounded border border-purple-700 transition font-bold">
+                    Validar Cadeia
+                </button>
+                <button id="btnTamper"
+                    class="bg-red-900/30 hover:bg-red-900 text-red-300 px-2 py-1 rounded border border-red-800 transition font-bold"
+                    title="Simula ataque de corrupção de dados">
+                    Simular Fraude
+                </button>
+            </div>
 
             <!-- CONTROLE DE TIME TRAVEL -->
             <div class="flex items-center space-x-2 bg-[#0d1117] px-3 py-1.5 rounded border border-gray-800">
                 <span class="text-yellow-400 font-bold">⏱️ Time Travel:</span>
-                <button id="btnToggleTimeTravel" class="bg-yellow-600/30 hover:bg-yellow-600 text-yellow-300 px-2 py-1 rounded border border-yellow-700 transition font-bold">
+                <button id="btnToggleTimeTravel"
+                    class="bg-yellow-600/30 hover:bg-yellow-600 text-yellow-300 px-2 py-1 rounded border border-yellow-700 transition font-bold">
                     Ativar Replay
                 </button>
                 <input type="range" id="timeSlider" min="0" value="0" class="w-28 accent-yellow-500 hidden" disabled>
@@ -79,7 +105,9 @@
     <!-- PAINEL PRINCIPAL -->
     <main class="grid grid-cols-1 lg:grid-cols-4 gap-3 my-3 flex-grow overflow-hidden">
         <div class="bg-[#0d1117] rounded-xl neon-border relative overflow-hidden flex flex-col lg:col-span-3">
-            <div class="absolute top-3 left-4 text-[10px] text-gray-500 tracking-widest uppercase pointer-events-none z-10">Quadro de Desenho Colaborativo</div>
+            <div
+                class="absolute top-3 left-4 text-[10px] text-gray-500 tracking-widest uppercase pointer-events-none z-10">
+                Quadro de Desenho Colaborativo</div>
             <canvas id="whiteboard" class="w-full h-full"></canvas>
         </div>
 
@@ -222,20 +250,50 @@
             merkleStream.scrollTop = merkleStream.scrollHeight;
         }
 
+        // --- LÓGICA DE AUDITORIA E SEGURANÇA ---
+        const btnAudit = document.getElementById('btnAudit');
+        const btnTamper = document.getElementById('btnTamper');
+
+        btnAudit.addEventListener('click', () => {
+            socket.emit('audit_chain');
+        });
+
+        btnTamper.addEventListener('click', () => {
+            socket.emit('simulate_tamper');
+        });
+
+        socket.on('audit_result', (res) => {
+            if (res.isValid) {
+                alert(`✅ Sucesso na Auditoria!\n\n${res.message}`);
+            } else {
+                alert(`🚨 FALHA NA AUDITORIA CRIPTOGRÁFICA!\n\n${res.message}`);
+            }
+        });
+
+        socket.on('chain_compromised', (data) => {
+            alert(data.message);
+            // Atualiza a interface visual para destacar blocos corrompidos se necessário
+            document.body.style.border = "3px solid #ef4444"; // Borda vermelha de alerta na tela
+        });
+
         function createBlockHTML(b) {
-            const shortHash = b.hash.substring(0, 12) + '...';
-            const shortPrev = b.previousHash.substring(0, 10) + '...';
+            const shortHash = b.hash ? b.hash.substring(0, 12) + '...' : 'N/A';
+            const shortPrev = b.previousHash ? b.previousHash.substring(0, 10) + '...' : 'N/A';
+            const nonceInfo = b.nonce !== undefined ? `Nonce: ${b.nonce} | ⏱️ ${b.miningTimeMs || 0}ms` : '';
+
             return `
-                <div class="bg-[#161b22] p-2 rounded border border-gray-800 hover:border-blue-500 transition font-mono">
-                    <div class="flex justify-between text-blue-400 font-bold mb-1">
+                <div class="bg-[#161b22] p-2 rounded border border-gray-800 hover:border-yellow-500 transition font-mono">
+                    <div class="flex justify-between text-yellow-400 font-bold mb-1">
                         <span>#${b.id} [${b.data.type}]</span>
                         <span class="text-[9px] text-gray-500">${new Date(b.timestamp).toLocaleTimeString()}</span>
                     </div>
                     <div class="text-[10px] text-gray-400 truncate">Hash: <span class="text-green-400">${shortHash}</span></div>
                     <div class="text-[9px] text-gray-600 truncate">Prev: ${shortPrev}</div>
+                    <div class="text-[9px] text-yellow-600 mt-1 font-bold">${nonceInfo}</div>
                 </div>
             `;
         }
     </script>
 </body>
+
 </html>

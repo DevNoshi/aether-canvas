@@ -1,30 +1,17 @@
-# aether-canvas
-AetherCanvas: Um Whiteboard Colaborativo P2P com Persistência em Blockchain Local / Merkle Tree
-
-
-aether-canvas/
-├── public/
-│   └── index.html         # O front-end do Whiteboard e HUD da Merkle Tree
-├── src/
-│   ├── canvasEngine.js    # Gerenciamento de estados e traços do canvas
-│   ├── merkleTree.js      # Motor criptográfico de hashing e encadeamento
-│   └── server.js          # Servidor Express e WebSockets (Socket.io)
-├── package.json
-└── README.md
-
 # AetherCanvas | Collaborative Whiteboard & Merkle Chain Stream
 
-**AetherCanvas** é um quadro branco colaborativo de alta performance em tempo real, desenvolvido com **Node.js, Express, Socket.io, HTML5 Canvas e Tailwind CSS**. A grande inovação arquitetural deste projeto é o encadeamento criptográfico: **cada traço, desenho ou ação realizada no quadro gera um hash SHA-256**, criando uma árvore de Merkle imutável exibida em tempo real em um painel lateral estilo blockchain.
+**AetherCanvas** é um quadro branco colaborativo de alta performance em tempo real, desenvolvido com **Node.js, Express, Socket.io, HTML5 Canvas e Tailwind CSS**. A grande inovação arquitetural deste projeto é o encadeamento criptográfico avançado: **cada traço, desenho ou ação realizada no quadro passa por um processo de Prova de Trabalho (*Proof of Work*)**, gerando blocos imutáveis com hashes validados por nonce e exibidos em tempo real em um painel lateral estilo blockchain.
 
 ---
 
-## 🚀 Principais Funcionalidades (v1.0.0)
+## 🚀 Principais Funcionalidades (v1.2.0-POW)
 
 - **Whiteboard Colaborativo P2P:** Sincronização bidirecional instantânea via WebSockets para múltiplos usuários desenharem simultaneamente.
 - **Motor de Canvas Otimizado (`CanvasEngine`):** Módulo dedicado para gerenciamento de traços fluidos, interpolação e redimensionamento responsivo.
-- **Merkle Tree Engine (Criptografia Local):** Validação e encadeamento de blocos baseados no histórico de ações utilizando blocos Gênesis e hashes SHA-256.
-- **Stream de Blocos em Tempo Real:** Painel lateral HUD modernizado que exibe o hash atual, o hash anterior e o carimbo de data/hora de cada modificação no quadro.
-- **Controles de Customização:** Seletor de cores, ajuste dinâmico do tamanho do pincel e ferramenta de limpeza global sincronizada.
+- **Merkle Tree & Proof of Work (PoW):** Cada bloco de ação exige mineração por força bruta (busca de hash com prefixo de zeros baseado na dificuldade ajustada), calculando o `nonce` e o tempo de processamento da CPU (`ms`).
+- **Modo Time Travel (Replay de Histórico):** Barra deslizante (*slider*) interativa que reconstrói e redesenha o estado do quadro passo a passo a partir de qualquer bloco do ledger.
+- **Auditoria Criptográfica e Simulação de Fraude:** Ferramentas integradas para validar a integridade de toda a cadeia de hashes e simular ataques de corrupção (*tampering*).
+- **Stream de Blocos em Tempo Real:** Painel lateral HUD modernizado que exibe o hash atual, o hash anterior, o nonce, o tempo de mineração e o carimbo de data/hora de cada modificação.
 
 ---
 
@@ -41,3 +28,14 @@ aether-canvas/
 1. **Clone o repositório e instale as dependências:**
    ```bash
    npm install
+
+
+   Inicie o servidor em modo de desenvolvimento:
+
+Bash
+npm run dev
+Acesse no navegador:
+Abra uma ou mais abas no navegador e acesse:
+
+Plaintext
+http://localhost:3000
